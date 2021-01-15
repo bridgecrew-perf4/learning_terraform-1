@@ -5,6 +5,6 @@ provider "aws" {
 }
 
 resource "aws_s3_bucket" "first-bucket" {
-  bucket    = "romell_test_terraform_01"
+  bucket    = "romell-terraform-course-20200115"
   acl       = "private"
 }
