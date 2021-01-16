@@ -48,6 +48,8 @@ resource "aws_security_group" "prod_security_group" {
 
 # Creating an aws instance NGNIX
 resource "aws_instance" "prod_web" {
+  count = 2
+
   ami                     = "ami-0592a8932e5a2fb0e"
   instance_type           = "t2.nano"
   vpc_security_group_ids  = [ aws_security_group.prod_security_group.id ]
@@ -56,9 +58,14 @@ resource "aws_instance" "prod_web" {
   }
 }
 
+# Creating Elastic IP Association
+resource "aws_eip_association" "prod_web_association" {
+  instance_id   = aws_instance.prod_web.0.id
+  allocation_id = aws_eip.prod_eip.id
+}
+
 # Creating Elastic IP
 resource "aws_eip" "prod_eip" {
-  instance = aws_instance.prod_web.id
   tags = {
     "elasticIP" = true
   }
