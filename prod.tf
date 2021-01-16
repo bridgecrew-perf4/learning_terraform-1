@@ -1,17 +1,44 @@
+# ====================================
+
 # Defining provider type AWS
 provider "aws" {
   profile   = "default"
   region    = "us-east-1"
 }
 
-# Creting a sample S3 bucket
+# ====================================
+
+# Creating a sample S3 bucket
 resource "aws_s3_bucket" "prod_first_bucket" {
   bucket    = "romell-terraform-course-20200115"
   acl       = "private"
 }
 
+# ====================================
+
 # Utilizing the default VPC in AWS
 resource "aws_default_vpc" "prod_vpc" {}
+
+# ====================================
+
+# Creating subnets
+resource "aws_default_subnet" "default_az1" {
+  availability_zone = "us-east-1a"
+
+  tags = {
+    "Availability" = "1"
+  }
+}
+
+resource "aws_default_subnet" "default_az2" {
+  availability_zone = "us-east-1b"
+  
+  tags = {
+    "Availability" = "2"
+  }
+}
+
+# ====================================
 
 # Creating the security group for our web server
 resource "aws_security_group" "prod_security_group" {
@@ -46,6 +73,8 @@ resource "aws_security_group" "prod_security_group" {
   }
 }
 
+# ====================================
+
 # Creating an aws instance NGNIX
 resource "aws_instance" "prod_web" {
   count = 2
@@ -53,10 +82,13 @@ resource "aws_instance" "prod_web" {
   ami                     = "ami-0592a8932e5a2fb0e"
   instance_type           = "t2.nano"
   vpc_security_group_ids  = [ aws_security_group.prod_security_group.id ]
+
   tags = {
     "Name" = "Terraform Nginx example"
   }
 }
+
+# ====================================
 
 # Creating Elastic IP Association
 resource "aws_eip_association" "prod_web_association" {
@@ -64,10 +96,36 @@ resource "aws_eip_association" "prod_web_association" {
   allocation_id = aws_eip.prod_eip.id
 }
 
+# ====================================
+
 # Creating Elastic IP
 resource "aws_eip" "prod_eip" {
   tags = {
     "elasticIP" = true
   }
 }
+
+# ====================================
+
+# Creating ELB
+
+resource "aws_elb" "prod_web_lb" {
+  name            = "prod-web-lb"
+  instances       = aws_instance.prod_web.*.id
+  subnets         = [ aws_default_subnet.default_az1.id, aws_default_subnet.default_az2.id ]
+  security_groups = [ aws_security_group.prod_security_group.id ]
+
+  listener {
+    instance_port     = 80
+    instance_protocol = "http"
+    lb_port           = 80
+    lb_protocol       = "http"
+  }
+
+  tags = {
+    "Name" = "prod-web-lb"
+  }
+}
+
+# ====================================
 
